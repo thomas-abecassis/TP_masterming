@@ -56,12 +56,31 @@ int main(int argc,char *argv[])
 }
 
 
+void communicatationClient(int socketClient){
+	char* buffer = malloc(sizeof(char)*256);
+	int nbRead = h_reads(socketClient, buffer, 256);
+	write(0, buffer, nbRead);
+	exit(1);
+}
+
+
 /******************************************************************************/	
-void serveur_appli(char *service)
+void serveur_appli(char *service){
 
 	int socket = h_socket(AF_INET, SOCK_STREAM);
+	struct sockaddr_in* adr = malloc(sizeof(struct sockaddr_in));
+	adr_socket( service , NULL, SOCK_STREAM, &adr);
+	h_bind(socket, adr);
+	h_listen(socket, 5);
 
+	while(1){
+	int client = h_accept(socket, adr);
+
+	if(fork()==0){
+		communicatationClient(client);
+	}
+
+	}
 }
 
 /******************************************************************************/	
-

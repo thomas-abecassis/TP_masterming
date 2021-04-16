@@ -63,15 +63,19 @@ int main(int argc, char *argv[])
 }
 
 /*****************************************************************************/
-void client_appli (char *serveur,char *service)
+void client_appli (char *serveur,char *service){
 
-/* procedure correspondant au traitement du client de votre application */
+	int socket = h_socket(AF_INET, SOCK_STREAM);
+	struct sockaddr_in* adr = malloc(sizeof(struct sockaddr_in));
+	adr_socket( service , serveur , SOCK_STREAM, &adr);
+	h_bind(socket, adr);
+	h_connect(socket, adr);
 
-{
-  
+	char* buffer = malloc(sizeof(char) * 256);
 
-/* a completer .....  */
+	int nbRead = read(1, buffer, 256);
 
+	write(socket, buffer, nbRead);
  }
 
 /*****************************************************************************/
