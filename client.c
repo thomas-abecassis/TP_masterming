@@ -84,7 +84,7 @@ void print_code(unsigned char* code, char* state, int size){
 		if(i%2)
 			c = code[i/2] >> 4;
 		else
-			c = code[i/2] & 0xF;1
+			c = code[i/2] & 0xF;
 		s = (state[i/4] >> 2*(i%4)) & 3;
 		printf("%s", CODE_COLORS[c]);
 		printf(" %s ", CODE_STATES[s]);
@@ -93,10 +93,7 @@ void print_code(unsigned char* code, char* state, int size){
 }
 
 /*****************************************************************************/
-void client_appli (char *serveur,char *service)
-
-/* procedure correspondant au traitement du client de votre application */
-
+void tmp (char *serveur,char *service)
 {
 	unsigned char code[] = {0 | (1 << 4), 2 | (3 << 4), 4 | (5 << 4), 6 | (7 << 4)};
 	unsigned char state[] = {2 | (2 << 2) | (0 << 4) | (1 << 6), 0 | (0 << 2) | (1 << 4) | (0 << 6)};
@@ -148,6 +145,26 @@ void client_appli (char *serveur,char *service)
  	wrefresh(C);
 	endwin();
 }
+
+
+void jeu(int serveur){
+	char* buffer = malloc(sizeof(char) * 256);
+
+	int nbRead = read(1, buffer, 256);
+	write(serveur, buffer, nbRead);
+} 
+
+/*****************************************************************************/
+void client_appli (char *serveur,char *service){
+
+	int socket = h_socket(AF_INET, SOCK_STREAM);
+	struct sockaddr_in* adr = malloc(sizeof(struct sockaddr_in));
+	adr_socket( service , serveur , SOCK_STREAM, &adr);
+	h_bind(socket, adr);
+	h_connect(socket, adr);
+
+	jeu(socket);
+ }
 
 /*****************************************************************************/
 
