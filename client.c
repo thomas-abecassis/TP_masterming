@@ -62,6 +62,14 @@ int main(int argc, char *argv[])
 	client_appli(serveur,service);
 }
 
+void jeu(int serveur){
+	char* buffer = malloc(sizeof(char) * 256);
+
+	int nbRead = read(1, buffer, 256);
+
+	write(serveur, buffer, nbRead);
+} 
+
 /*****************************************************************************/
 void client_appli (char *serveur,char *service){
 
@@ -71,11 +79,7 @@ void client_appli (char *serveur,char *service){
 	h_bind(socket, adr);
 	h_connect(socket, adr);
 
-	char* buffer = malloc(sizeof(char) * 256);
-
-	int nbRead = read(1, buffer, 256);
-
-	write(socket, buffer, nbRead);
+	jeu(socket);
  }
 
 /*****************************************************************************/
