@@ -37,19 +37,23 @@
 char* CODE_STATES[] = {"⭘", "⭗", "⬤"};
 char* CODE_COLORS[] = {COL_RED, COL_GREEN, COL_BLUE, COL_YELLOW, COL_PURPLE, COL_ORANGE, COL_PINK, COL_WHITE};
 
+char** code_history;
+char** states_history;
+
 void client_appli (char *serveur, char *service);
 
 
 /*****************************************************************************/
 /*--------------- programme client -----------------------*/
-
+void tmp(char* s, char* i);
 int main(int argc, char *argv[])
 {	
 	
 	char *serveur= SERVEUR_DEFAUT; /* serveur par defaut */
 	char *service= SERVICE_DEFAUT; /* numero de service par defaut (no de port) */
 
-	client_appli(serveur,service);
+	client_appli(serveur, service);
+	//client_appli(serveur,service);
 	/* Permet de passer un nombre de parametre variable a l'executable */
 	switch(argc)
 	{
@@ -74,7 +78,8 @@ int main(int argc, char *argv[])
 	/* service le numero de port sur le serveur correspondant au  */
 	/* service desire par le client */
 	
-	client_appli(serveur,service);
+	
+	//client_appli(serveur,service);
 }
 
 void print_code(unsigned char* code, char* state, int size){
