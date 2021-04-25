@@ -27,15 +27,18 @@
 #define COL_GREEN "\x1b[38;2;32;255;32m"
 #define COL_BLUE "\x1b[38;2;32;64;255m"
 #define COL_YELLOW "\x1b[38;2;255;255;32m"
-#define COL_PINK "\x1b[38;2;255;64;255m"
-#define COL_PURPLE "\x1b[38;2;128;32;255m"
+#define COL_PINK "\x1b[38;2;255;128;128m"
+#define COL_PURPLE "\x1b[38;2;192;32;255m"
 #define COL_ORANGE "\x1b[38;2;255;128;32m"
 #define COL_WHITE "\x1b[38;2;255;255;255m"
 
 #define COL_RESET "\e[0m"
 
-char* CODE_STATES[] = {"⭘", "⭗", "⬤"};
+char* CODE_STATES[] = {"⭘", "⬤"};
 char* CODE_COLORS[] = {COL_RED, COL_GREEN, COL_BLUE, COL_YELLOW, COL_PURPLE, COL_ORANGE, COL_PINK, COL_WHITE};
+
+char* HINT_STATES[] = {"•", "⭗"};
+char* HINT_COLORS[] = {COL_WHITE, COL_WHITE, COL_RED};
 
 char** code_history;
 char** states_history;
@@ -52,7 +55,7 @@ int main(int argc, char *argv[])
 	char *serveur= SERVEUR_DEFAUT; /* serveur par defaut */
 	char *service= SERVICE_DEFAUT; /* numero de service par defaut (no de port) */
 
-	client_appli(serveur, service);
+	tmp(serveur, service);
 	//client_appli(serveur,service);
 	/* Permet de passer un nombre de parametre variable a l'executable */
 	switch(argc)
@@ -82,28 +85,91 @@ int main(int argc, char *argv[])
 	//client_appli(serveur,service);
 }
 
-void print_code(unsigned char* code, char* state, int size){
+
+void print_code(char* state, char* color, int size){
 	char c=0;
 	char s=0;
 	for(int i=0; i < size; i++){
-		if(i%2)
-			c = code[i/2] >> 4;
-		else
-			c = code[i/2] & 0xF;
-		s = (state[i/4] >> 2*(i%4)) & 3;
+		c = (color[i/2] >> 4*(i%2)) & 0xF;
+		s = (state[i/8] >> (i%8)) & 1;
 		printf("%s", CODE_COLORS[c]);
 		printf(" %s ", CODE_STATES[s]);
 		printf(COL_RESET);
 	}
 }
 
+void print_hint(char* state, char* color, int size){
+	char c=0;
+	char s=0;
+	for(int i=0; i < size; i++){
+		c = (color[i/4] >> 2*(i%4)) & 3;
+		s = (state[i/8] >> (i%8)) & 1;
+		printf("%s", HINT_COLORS[c]);
+		printf(" %s ", HINT_STATES[s]);
+		printf(COL_RESET);
+	}
+}
+
+void print_line(char* code_state, char* code_color, char* hint_state, char* hint_color, int size){
+	print_code(code_state, code_color, size);
+	printf(" ");
+	print_hint(hint_state, hint_color, size);
+	printf("\n");
+}
+
+void gen_hint(char* code, char* hidden, char* hint_color, char* hint_state, int size){
+	char cc=0;
+	char ch=0;
+	int* count_c = malloc(size*sizeof(int));
+	int* count_h = malloc(size*sizeof(int));
+
+	int hint_idx = 0;
+	for(int i=0; i < size/4;i++){
+		hint_state[i/2] = 0;
+		hint_color[i] = 0;
+	}
+	for(int i=0; i < size; i++){
+		cc = (code[i/2] >> 4*(i%2)) & 0xF;
+		ch = (hidden[i/2] >> 4*(i%2)) & 0xF;
+		
+		if(cc == ch){
+			hint_color[hint_idx/4] |= (2 << 2*(hint_idx%4));
+			hint_state[hint_idx/8] |= (1 << (hint_idx%8));
+			hint_idx++;
+		}
+		
+		else{
+			count_c[cc]++;
+			count_h[ch]++;
+		}
+
+	}
+	
+	for(int i=0; i < size; i++){
+		int min = (count_h[i] > count_c[i]) ? count_c[i] : count_h[i];
+		while(min){
+			hint_state[hint_idx/8] |= (1 << (hint_idx%8));
+			hint_color[hint_idx/4] |= (1 << 2*(hint_idx%4));
+			min--;
+			hint_idx++;
+		}
+	}
+}
 /*****************************************************************************/
 void tmp (char *serveur,char *service)
 {
-	unsigned char code[] = {0 | (1 << 4), 2 | (3 << 4), 4 | (5 << 4), 6 | (7 << 4)};
-	unsigned char state[] = {2 | (2 << 2) | (0 << 4) | (1 << 6), 0 | (0 << 2) | (1 << 4) | (0 << 6)};
-	print_code(code, state, 8);
-	printf("\n\n");
+	
+	char hidden[] = {0 | (1 << 4), 0 | (0 << 4), 4 | (6 << 4), 5 | (7 << 4)};
+	char code[] = {0 | (1 << 4), 2 | (3 << 4), 3 | (5 << 4), 6 | (7 << 4)};
+	char code_state[] = {255};
+	char hint_state[1]; 
+	char hint_color[2];
+
+	print_code(code_state, hidden, 8);
+	printf("\n");
+	gen_hint(code, hidden, hint_color, hint_state, 8);
+	print_line(code_state, code, hint_state, hint_color, 8);
+	printf("\n");
 
 	WINDOW *W1, *L1, *C;
   	pid_t PID;
