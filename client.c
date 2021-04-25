@@ -39,7 +39,7 @@
 char* CODE_STATES[] = {"⭘", "⬤"};
 char* CODE_COLORS[] = {COL_RED, COL_GREEN, COL_BLUE, COL_YELLOW, COL_PURPLE, COL_ORANGE, COL_PINK, COL_WHITE};
 
-char* HINT_STATES[] = {"•", "⭗"};
+char* HINT_STATES[] = {"•", "⭗", "⭗"};
 char* HINT_COLORS[] = {COL_WHITE, COL_WHITE, COL_RED};
 
 char** code_history;
@@ -102,26 +102,24 @@ void print_code(char* state, char* color, int size){
 	}
 }
 
-void print_hint(char* state, char* color, int size){
-	char c=0;
+void print_hint(char* state, int size){
 	char s=0;
 	for(int i=0; i < size; i++){
-		c = (color[i/4] >> 2*(i%4)) & 3;
-		s = (state[i/8] >> (i%8)) & 1;
-		printf("%s", HINT_COLORS[c]);
+		s = (state[i/4] >> 2*(i%4)) & 3;
+		printf("%s", HINT_COLORS[s]);
 		printf(" %s ", HINT_STATES[s]);
 		printf(COL_RESET);
 	}
 }
 
-void print_line(char* code_state, char* code_color, char* hint_state, char* hint_color, int size){
+void print_line(char* code_state, char* code_color, char* hint_state, int size){
 	print_code(code_state, code_color, size);
 	printf(" ");
-	print_hint(hint_state, hint_color, size);
+	print_hint(hint_state, size);
 	printf("\n");
 }
 
-void gen_hint(char* code, char* hidden, char* hint_color, char* hint_state, int size){
+void gen_hint(char* code, char* hidden, char* hint_state, int size){
 	char cc=0;
 	char ch=0;
 	int* count_c = malloc(size*sizeof(int));
@@ -129,31 +127,27 @@ void gen_hint(char* code, char* hidden, char* hint_color, char* hint_state, int 
 
 	int hint_idx = 0;
 	for(int i=0; i < size/4;i++){
-		hint_state[i/2] = 0;
-		hint_color[i] = 0;
+		hint_state[i] = 0;
 	}
 	for(int i=0; i < size; i++){
 		cc = (code[i/2] >> 4*(i%2)) & 0xF;
 		ch = (hidden[i/2] >> 4*(i%2)) & 0xF;
 		
 		if(cc == ch){
-			hint_color[hint_idx/4] |= (2 << 2*(hint_idx%4));
-			hint_state[hint_idx/8] |= (1 << (hint_idx%8));
+			hint_state[hint_idx/4] |= (2 << 2*(hint_idx%4));
 			hint_idx++;
 		}
-		
 		else{
 			count_c[cc]++;
 			count_h[ch]++;
 		}
 
 	}
-	
+
 	for(int i=0; i < size; i++){
 		int min = (count_h[i] > count_c[i]) ? count_c[i] : count_h[i];
 		while(min){
-			hint_state[hint_idx/8] |= (1 << (hint_idx%8));
-			hint_color[hint_idx/4] |= (1 << 2*(hint_idx%4));
+			hint_state[hint_idx/4] |= (1 << 2*(hint_idx%4));
 			min--;
 			hint_idx++;
 		}
@@ -162,17 +156,20 @@ void gen_hint(char* code, char* hidden, char* hint_color, char* hint_state, int 
 /*****************************************************************************/
 void tmp (char *serveur,char *service)
 {
-	
+	int code_length = 8;
+	int history_length = 12;
 	char hidden[] = {0 | (1 << 4), 0 | (0 << 4), 4 | (6 << 4), 5 | (7 << 4)};
 	char code[] = {0 | (1 << 4), 2 | (3 << 4), 3 | (5 << 4), 6 | (7 << 4)};
 	char code_state[] = {255};
-	char hint_state[1]; 
-	char hint_color[2];
+	char hint_state[2];
+
+	char** code_history = malloc(history_length*code_length/2);
+	char** hint_history = malloc(history_length*code_length/4);
 
 	print_code(code_state, hidden, 8);
 	printf("\n");
-	gen_hint(code, hidden, hint_color, hint_state, 8);
-	print_line(code_state, code, hint_state, hint_color, 8);
+	gen_hint(code, hidden, hint_state, 8);
+	print_line(code_state, code, hint_state, 8);
 	printf("\n");
 
 	return;
