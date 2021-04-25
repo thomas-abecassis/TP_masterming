@@ -17,6 +17,8 @@
 #include <sys/wait.h>
 #include<stdlib.h>
 #include <unistd.h>
+#include <string.h>
+
 
 #include "fon.h"   		/* primitives de la boite a outils */
 
@@ -152,12 +154,49 @@ void tmp (char *serveur,char *service)
 	endwin();
 }
 
+//renvoie 1 si le joueur a gagné, 0 sinon
+int tour(int serveur, int difficulte){
+	char* buffer = malloc(sizeof(char) * 2);
+	printf("votre choix %d de couleurs \n", difficulte);
+	//ici on doit write dans le serveur les choix
+	int nbRead = read(serveur, buffer, 2);
+	int nbJustes = buffer[0]>>4;
+	int nbCouleurs = buffer[0] & 0x0F;
+
+	printf("il y a %d couleurs de justes \n", nbCouleurs);
+	printf("il y a %d pionts de bien placés \n", nbJustes);
+
+	if(nbJustes==difficulte)
+		return 1;
+	return 0;
+}
 
 void jeu(int serveur){
-	char* buffer = malloc(sizeof(char) * 256);
 
-	int nbRead = read(1, buffer, 256);
+	int nbRead = 0;
+	int difficulte = -1;
+	char* buffer = malloc(sizeof(char) * 2);
+	while(difficulte < 1){
+		printf("quelle difficultée pour votre partie ? \n");
+
+		nbRead = read(1, buffer, 2);
+		difficulte = atoi(buffer);
+	}
+
+	//on envoie la difficultée choisie au serveur
 	write(serveur, buffer, nbRead);
+
+	int nbTour = 1;
+	int gagne = 0;
+	while( !gagne && nbTour !=12){
+		gagne = tour(serveur, difficulte);
+		nbTour++;
+	}
+
+	if(gagne)
+		printf("bien joué vous avez gagné en %d coups \n", nbTour);
+	else
+		printf("désolé vous avez perdu \n");
 } 
 
 /*****************************************************************************/
@@ -170,8 +209,8 @@ void client_appli (char *serveur,char *service){
 	adr_socket( service , serveur , SOCK_STREAM, &adrServ);
 	h_bind(socket, adrCli);
 	h_connect(socket, adrServ);
-	write(socket, "test", 5);
-	//jeu(socket);
+	jeu(socket);
+	h_close(socket);
  }
 
 /*****************************************************************************/
