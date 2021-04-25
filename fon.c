@@ -182,7 +182,6 @@ if	(!getsockname (num_soc,  (struct sockaddr *)&s, (socklen_t *)&lensa))
 	if ( res < 0 ) printf( "\nERREUR 'h_bind' : liaison socket %d impossible\n",num_soc);
 
 
-
 #ifdef DEBUG
 	printf("%sH_BIND (fin)  \n",aff_debug); 
 #endif

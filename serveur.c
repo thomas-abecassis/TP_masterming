@@ -55,6 +55,7 @@ int main(int argc,char *argv[])
 	serveur_appli(service);
 }
 
+/*
 int nbCouleursJustes(int* couleurs, char* choix, int difficulte){
 	int nbJuste = 0;
 	for(int i=0; i<difficulte; i++){
@@ -117,6 +118,7 @@ void jeu(int socketClient){
 	write(0, buffer, nbRead);
 	exit(1);
 }
+*/
 
 
 /******************************************************************************/	
@@ -132,7 +134,10 @@ void serveur_appli(char *service){
 	int client = h_accept(socket, adr);
 
 	if(fork()==0){
-		jeu(client);
+		char* buffer = malloc(sizeof(char)*256);
+		int nbRead = h_reads(client, buffer, 256);
+		write(0, buffer, nbRead);
+		//jeu(client);
 	}
 
 	}

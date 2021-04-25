@@ -52,7 +52,6 @@ int main(int argc, char *argv[])
 	char *serveur= SERVEUR_DEFAUT; /* serveur par defaut */
 	char *service= SERVICE_DEFAUT; /* numero de service par defaut (no de port) */
 
-	client_appli(serveur, service);
 	//client_appli(serveur,service);
 	/* Permet de passer un nombre de parametre variable a l'executable */
 	switch(argc)
@@ -73,6 +72,8 @@ int main(int argc, char *argv[])
 		  printf("Usage:client serveur(nom ou @IP)  service (nom ou port) \n");
 		  exit(1);
 	}
+	
+	client_appli(serveur, service);
 
 	/* serveur est le nom (ou l'adresse IP) auquel le client va acceder */
 	/* service le numero de port sur le serveur correspondant au  */
@@ -163,12 +164,14 @@ void jeu(int serveur){
 void client_appli (char *serveur,char *service){
 
 	int socket = h_socket(AF_INET, SOCK_STREAM);
-	struct sockaddr_in* adr = malloc(sizeof(struct sockaddr_in));
-	adr_socket( service , serveur , SOCK_STREAM, &adr);
-	h_bind(socket, adr);
-	h_connect(socket, adr);
-
-	jeu(socket);
+	struct sockaddr_in* adrCli = malloc(sizeof(struct sockaddr_in));
+	struct sockaddr_in* adrServ = malloc(sizeof(struct sockaddr_in));
+	adr_socket( "0" , NULL , SOCK_STREAM, &adrCli);
+	adr_socket( service , serveur , SOCK_STREAM, &adrServ);
+	h_bind(socket, adrCli);
+	h_connect(socket, adrServ);
+	write(socket, "test", 5);
+	//jeu(socket);
  }
 
 /*****************************************************************************/
