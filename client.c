@@ -17,6 +17,8 @@
 #include <sys/wait.h>
 #include<stdlib.h>
 #include <unistd.h>
+#include <string.h>
+
 
 #include "fon.h"   		/* primitives de la boite a outils */
 
@@ -76,6 +78,8 @@ int main(int argc, char *argv[])
 		  printf("Usage:client serveur(nom ou @IP)  service (nom ou port) \n");
 		  exit(1);
 	}
+	
+	client_appli(serveur, service);
 
 	/* serveur est le nom (ou l'adresse IP) auquel le client va acceder */
 	/* service le numero de port sur le serveur correspondant au  */
@@ -171,6 +175,7 @@ void tmp (char *serveur,char *service)
 	print_line(code_state, code, hint_state, hint_color, 8);
 	printf("\n");
 
+	return;
 	WINDOW *W1, *L1, *C;
   	pid_t PID;
  	int SZ_1, SZ_2 ; /* taille d'un cadre */
@@ -217,24 +222,63 @@ void tmp (char *serveur,char *service)
 	endwin();
 }
 
+//renvoie 1 si le joueur a gagné, 0 sinon
+int tour(int serveur, int difficulte){
+	char* buffer = malloc(sizeof(char) * 2);
+	printf("votre choix %d de couleurs \n", difficulte);
+	//ici on doit write dans le serveur les choix
+	int nbRead = read(serveur, buffer, 2);
+	int nbJustes = buffer[0]>>4;
+	int nbCouleurs = buffer[0] & 0x0F;
+
+	printf("il y a %d couleurs de justes \n", nbCouleurs);
+	printf("il y a %d pionts de bien placés \n", nbJustes);
+
+	if(nbJustes==difficulte)
+		return 1;
+	return 0;
+}
 
 void jeu(int serveur){
-	char* buffer = malloc(sizeof(char) * 256);
 
-	int nbRead = read(1, buffer, 256);
+	int nbRead = 0;
+	int difficulte = -1;
+	char* buffer = malloc(sizeof(char) * 2);
+	while(difficulte < 1){
+		printf("quelle difficultée pour votre partie ? \n");
+
+		nbRead = read(1, buffer, 2);
+		difficulte = atoi(buffer);
+	}
+
+	//on envoie la difficultée choisie au serveur
 	write(serveur, buffer, nbRead);
+
+	int nbTour = 1;
+	int gagne = 0;
+	while( !gagne && nbTour !=12){
+		gagne = tour(serveur, difficulte);
+		nbTour++;
+	}
+
+	if(gagne)
+		printf("bien joué vous avez gagné en %d coups \n", nbTour);
+	else
+		printf("désolé vous avez perdu \n");
 } 
 
 /*****************************************************************************/
 void client_appli (char *serveur,char *service){
 
 	int socket = h_socket(AF_INET, SOCK_STREAM);
-	struct sockaddr_in* adr = malloc(sizeof(struct sockaddr_in));
-	adr_socket( service , serveur , SOCK_STREAM, &adr);
-	h_bind(socket, adr);
-	h_connect(socket, adr);
-
+	struct sockaddr_in* adrCli = malloc(sizeof(struct sockaddr_in));
+	struct sockaddr_in* adrServ = malloc(sizeof(struct sockaddr_in));
+	adr_socket( "0" , NULL , SOCK_STREAM, &adrCli);
+	adr_socket( service , serveur , SOCK_STREAM, &adrServ);
+	h_bind(socket, adrCli);
+	h_connect(socket, adrServ);
 	jeu(socket);
+	h_close(socket);
  }
 
 /*****************************************************************************/
