@@ -77,14 +77,15 @@ int nbCouleursJustes(int* couleurs, char* choix, int difficulte){
 	//on check les pionts bien placés
 	for(int i=0; i<difficulte; i++){
 		int couleurCourante = 0;
-		if(i%2==0)	
-			couleurCourante = choix[i/2] && 0x0F;
+		if(i%2==1)	
+			couleurCourante = choix[i/2] & 0x0F;
 		else
 			couleurCourante = choix[i/2]  >> 4;
 		if(couleurs[i]==couleurCourante){
 			nbJustes++;
 			checkTab[i]=1;
 		}
+		printf("couleur courante : %d \n",couleurCourante);
 	}
 
 	int nbCouleurs = 0;
@@ -108,14 +109,16 @@ int nbCouleursJustes(int* couleurs, char* choix, int difficulte){
 			}
 		}
 	}
+
+	printf("nbJustes : %d, nbCouleur : %d \n", nbJustes, nbCouleurs);
 	
-	return nbJustes << 4 + nbCouleurs; 
+	return nbJustes << 4 | nbCouleurs; 
 }
 
 int* tirerCouleurs(int difficulte){
 	int* tab = malloc(sizeof(int) * difficulte);
 	for(int i=0; i<difficulte; i++){
-		tab[i]=rand()%difficulte;
+		tab[i]=rand()%8;
 	}
 	return tab;
 }

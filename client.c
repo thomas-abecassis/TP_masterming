@@ -223,7 +223,11 @@ void tmp (char *serveur,char *service)
 int tour(int serveur, int difficulte){
 	char* buffer = malloc(sizeof(char) * 2);
 	printf("votre choix %d de couleurs \n", difficulte);
-	//ici on doit write dans le serveur les choix
+	// ----- Pour test -----
+	char test[2];
+	test[0]=(char)(1 << 4 | 7);test[1]=(char)(2 << 4 | 2);
+	write(serveur, test, 4);
+	// ---------------------
 	int nbRead = read(serveur, buffer, 2);
 	int nbJustes = buffer[0]>>4;
 	int nbCouleurs = buffer[0] & 0x0F;
@@ -248,7 +252,6 @@ void jeu(int serveur){
 		difficulte = atoi(buffer);
 	}
 
-	//on envoie la difficultée choisie au serveur
 	write(serveur, buffer, nbRead);
 
 	int nbTour = 1;
