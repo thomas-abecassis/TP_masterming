@@ -18,6 +18,7 @@
 #include<sys/wait.h>
 #include<stdlib.h>
 #include<string.h>
+#include "time.h"
 
 #include "fon.h"     		/* Primitives de la boite a outils */
 #include "shared.h"
@@ -32,7 +33,7 @@ void serveur_appli (char *service);   /* programme serveur */
 
 int main(int argc,char *argv[])
 {
-
+	srand( time( NULL ) );
 	char *service= SERVICE_DEFAUT; /* numero de service par defaut */
 
 
@@ -126,7 +127,7 @@ int tour(int socketClient, char* hidden, variation* var){
 	write(socketClient, hint_state, len_hint);
 	write(socketClient, &g, sizeof(int));
 
-	free(buffer);
+	//free(buffer);
 	free(hint_state);
 	return g;
 }
@@ -168,6 +169,8 @@ void jeu(int socketClient){
 
 	free(buffer);
 	free(hidden);
+	
+	
 }
 
 
@@ -182,15 +185,14 @@ void serveur_appli(char *service){
 	h_listen(socket, 5);
 
 	while(1){
-	int client = h_accept(socket, adr);
+		int client = h_accept(socket, adr);
 
-	if(fork()==0){
-		jeu(client);
-		h_close(client);
-		exit(1);
-	}
-	
-	free(adr);
+		if(fork()==0){
+			jeu(client);
+			h_close(client);
+			exit(1);
+		}
+
 	}
 }
 

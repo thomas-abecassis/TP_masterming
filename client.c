@@ -35,9 +35,7 @@ void client_appli (char *serveur, char *service);
 /*--------------- programme client -----------------------*/
 void tmp(char* s, char* i, variation* v);
 int main(int argc, char *argv[])
-{	
-	srand( time( NULL ) );
-
+{
 	char *serveur= SERVEUR_DEFAUT; /* serveur par defaut */
 	char *service= SERVICE_DEFAUT; /* numero de service par defaut (no de port) */
 
@@ -310,6 +308,7 @@ int tour(int serveur, variation* var, WINDOW* W, WINDOW* C){
 	free(colors);
 	free(fstates);
 	free(palette);
+
 	return g;
 }
 
@@ -411,8 +410,8 @@ void client_appli (char *serveur,char *service){
 	h_connect(socket, adrServ);
 	jeu(socket);
 	h_close(socket);
-	free(adrCli);
-	free(adrServ);
+	//free(adrCli);
+	//free(adrServ);
  }
 
 /*****************************************************************************/
