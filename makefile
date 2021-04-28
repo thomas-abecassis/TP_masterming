@@ -44,10 +44,10 @@ serveur.o : fon.h	serveur.c
 	gcc  $(CFLAGS) -c  serveur.c	
 
 client : ${OBJ1}	
-	gcc $(LFLAGS) ${OBJ1} -o client -lcurses   $(OPTIONS)
+	gcc $(LFLAGS) ${OBJ1} -o client -lncursesw   $(OPTIONS)
 
 serveur : ${OBJ2}	
-	gcc $(LFLAGS) ${OBJ2} -o serveur -lcurses   $(OPTIONS)
+	gcc $(LFLAGS) ${OBJ2} -o serveur -lncursesw   $(OPTIONS)
 
 
 

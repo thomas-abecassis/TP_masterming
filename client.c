@@ -10,7 +10,7 @@
 /*									      */
 /******************************************************************************/	
 
-
+#define _XOPEN_SOURCE_EXTENDED
 #include <stdio.h>
 #include <curses.h> 		/* Primitives de gestion d'ecran */
 #include <sys/signal.h>
@@ -18,56 +18,14 @@
 #include<stdlib.h>
 #include <unistd.h>
 #include <string.h>
-
-
+#include "locale.h"
+#include "time.h"
 #include "fon.h"   		/* primitives de la boite a outils */
+#include "shared.h"
 
 #define SERVICE_DEFAUT "1111"
 #define SERVEUR_DEFAUT "127.0.0.1"
 
-#define COL_RED "\x1b[38;2;255;32;32m"
-#define COL_GREEN "\x1b[38;2;32;255;32m"
-#define COL_BLUE "\x1b[38;2;32;64;255m"
-#define COL_YELLOW "\x1b[38;2;255;255;32m"
-#define COL_PINK "\x1b[38;2;255;128;128m"
-#define COL_PURPLE "\x1b[38;2;192;32;255m"
-#define COL_ORANGE "\x1b[38;2;255;128;32m"
-#define COL_WHITE "\x1b[38;2;255;255;255m"
-#define COL_RESET "\e[0m"
-
-#define COL_BLACK_W 0
-#define COL_RED_W 1
-#define COL_GREEN_W 2
-#define COL_BLUE_W 3
-#define COL_YELLOW_W 4
-#define COL_PINK_W 5
-#define COL_PURPLE_W 6
-#define COL_ORANGE_W 7
-#define COL_WHITE_W 8
-
-char* CODE_STATES[] = {"⭘", "⬤"};
-char* CODE_COLORS[] = {COL_RED, COL_GREEN, COL_BLUE, COL_YELLOW, COL_PURPLE, COL_ORANGE, COL_PINK, COL_WHITE};
-int CODE_COLORS_W[] = {COL_RED_W, COL_GREEN_W, COL_BLUE_W, COL_YELLOW_W, COL_PURPLE_W, COL_ORANGE_W, COL_PINK_W, COL_WHITE_W};
-
-char* HINT_STATES[] = {"•", "⭗", "⭗"};
-char* HINT_COLORS[] = {COL_WHITE, COL_WHITE, COL_RED};
-
-
-typedef struct
-{
-	char* name;
-	int length;
-	int nb_colors;
-	int history_length;
-}variation;
-
-variation variations[] = {
-	{"Original", 4, 6, 12},
-	{"Deluxe", 8, 5, 14},
-	{"Kids", 5, 3, 10},
-	{"Binary", 4, 2, 5},
-	{"Extreme", 8, 8, 18}
-};
 
 
 void client_appli (char *serveur, char *service);
@@ -78,7 +36,8 @@ void client_appli (char *serveur, char *service);
 void tmp(char* s, char* i, variation* v);
 int main(int argc, char *argv[])
 {	
-	
+	srand( time( NULL ) );
+
 	char *serveur= SERVEUR_DEFAUT; /* serveur par defaut */
 	char *service= SERVICE_DEFAUT; /* numero de service par defaut (no de port) */
 
@@ -104,8 +63,8 @@ int main(int argc, char *argv[])
 		  exit(1);
 	}
 	
-	tmp(serveur, service, &variations[0]);
-	//client_appli(serveur, service);
+	//tmp(serveur, service, &variations[0]);
+	client_appli(serveur, service);
 
 	/* serveur est le nom (ou l'adresse IP) auquel le client va acceder */
 	/* service le numero de port sur le serveur correspondant au  */
@@ -116,62 +75,35 @@ int main(int argc, char *argv[])
 }
 
 
-void print_code(char* state, char* color, int size){
-	char c=0;
-	char s=0;
-	for(int i=0; i < size; i++){
-		c = (color[i/2] >> 4*(i%2)) & 0xF;
-		s = (state[i/8] >> (i%8)) & 1;
-		printf("%s", CODE_COLORS[c]);
-		printf(" %s ", CODE_STATES[s]);
-		printf(COL_RESET);
-	}
-}
+
 void write_code(char* state, char* color, int size, WINDOW* w){
 	char c=0;
 	char s=0;
 	int str_len = size*32;
-	char* str = malloc(str_len);
+	wchar_t* str = malloc(str_len*sizeof(wchar_t));
 	for(int i=0; i < size; i++){
 		c = (color[i/2] >> 4*(i%2)) & 0xF;
 		s = (state[i/8] >> (i%8)) & 1;
 		
 		wattron(w, COLOR_PAIR(CODE_COLORS_W[c]));
-		sprintf(str, " %s ", CODE_STATES[s]);
-		waddstr(w, str);
+		swprintf(str, str_len, L" %ls ", CODE_STATES[s]);
+		waddwstr(w, str);
 		wattroff(w, COLOR_PAIR(CODE_COLORS_W[c]));
-		wrefresh(w);
-	}
-	//waddstr(w, str);
-}
-void print_hint(char* state, int size){
-	char s=0;
-	for(int i=0; i < size; i++){
-		s = (state[i/4] >> 2*(i%4)) & 3;
-		printf("%s", HINT_COLORS[s]);
-		printf(" %s ", HINT_STATES[s]);
-		printf(COL_RESET);
 	}
 }
 void write_hint(char* state, int size, WINDOW* w){
 	char s=0;
 	int str_len = size*32;
-	char* str = malloc(str_len);
+	wchar_t* str = malloc(str_len*sizeof(wchar_t));
 	for(int i=0; i < size; i++){
 		s = (state[i/4] >> 2*(i%4)) & 3;
-		sprintf(str, "%s", HINT_COLORS[s]);
-		sprintf(str, " %s ", HINT_STATES[s]);
-		sprintf(str, COL_RESET);
+		wattron(w, COLOR_PAIR(HINT_COLORS_W[s]));
+		swprintf(str, str_len, L" %ls ", HINT_STATES[s]);
+		waddwstr(w, str);
+		wattroff(w, COLOR_PAIR(HINT_COLORS_W[s]));
 	}
-	waddstr(w, str);
 }
 
-void print_line(char* code_state, char* code_color, char* hint_state, int size){
-	print_code(code_state, code_color, size);
-	printf(" ");
-	print_hint(hint_state, size);
-	printf("\n");
-}
 
 void write_line(char* code_state, char* code_color, char* hint_state, int size, WINDOW* w){
 	write_code(code_state, code_color, size, w);
@@ -180,67 +112,8 @@ void write_line(char* code_state, char* code_color, char* hint_state, int size, 
 	waddch(w, '\n');
 }
 
-void gen_hint(char* code, char* hidden, char* hint_state, int size){
-	char cc=0;
-	char ch=0;
-	int* count_c = malloc(size*sizeof(int));
-	int* count_h = malloc(size*sizeof(int));
-
-	int hint_idx = 0;
-	for(int i=0; i < size/4;i++){
-		hint_state[i] = 0;
-	}
-	for(int i=0; i < size; i++){
-		cc = (code[i/2] >> 4*(i%2)) & 0xF;
-		ch = (hidden[i/2] >> 4*(i%2)) & 0xF;
-		
-		if(cc == ch){
-			hint_state[hint_idx/4] |= (2 << 2*(hint_idx%4));
-			hint_idx++;
-		}
-		else{
-			count_c[cc]++;
-			count_h[ch]++;
-		}
-
-	}
-
-	for(int i=0; i < size; i++){
-		int min = (count_h[i] > count_c[i]) ? count_c[i] : count_h[i];
-		while(min){
-			hint_state[hint_idx/4] |= (1 << 2*(hint_idx%4));
-			min--;
-			hint_idx++;
-		}
-	}
-}
-/*****************************************************************************/
-void tmp (char *serveur,char *service, variation* var)
-{	
-	int code_length = var->length;
-	int history_length = var->history_length;
-
-	char hidden[] = {0 | (1 << 4), 0 | (0 << 4), 4 | (6 << 4), 5 | (7 << 4)};
-	char code[] = {2 | (1 << 4), 0 | (3 << 4), 3 | (5 << 4), 6 | (7 << 4)};
-	char code_state[] = {255};
-	char hint_state[2];
-
-	char** code_history = malloc(history_length*code_length/2);
-	char** hint_history = malloc(history_length*code_length/4);
-
-	print_code(code_state, hidden, 8);
-	printf("\n");
-	gen_hint(code, hidden, hint_state, 8);
-	print_line(code_state, code, hint_state, 8);
-	printf("\n");
-	printf("%d\n", COLORS);
-	
-	WINDOW *W1, *L1, *C;
-  	pid_t PID;
- 	int SZ_1, SZ_2 ; /* taille d'un cadre */
- 	char CAR ;
-	
- 	initscr(); /* Initialisation (nettoyage) de l'ecran */
+void init_gui(){
+	initscr(); /* Initialisation (nettoyage) de l'ecran */
 	start_color();
 
 	init_color(COL_BLACK_W, 125, 125, 125);
@@ -250,8 +123,8 @@ void tmp (char *serveur,char *service, variation* var)
 	init_color(COL_YELLOW_W, 1000, 1000, 125);
 	init_color(COL_PINK_W, 1000, 500, 500);
 	init_color(COL_PURPLE_W, 750, 125, 1000);
-	init_color(COL_ORANGE_W, 1000, 500, 125);
     init_color(COL_WHITE_W, 1000, 1000, 1000);
+	init_color(COL_ORANGE_W, 1000, 500, 125);
 
 	init_pair(COL_BLACK_W, COL_WHITE_W, COL_BLACK_W);
 	init_pair(COL_RED_W, COL_RED_W, COL_BLACK_W);
@@ -262,93 +135,253 @@ void tmp (char *serveur,char *service, variation* var)
 	init_pair(COL_PURPLE_W, COL_PURPLE_W, COL_BLACK_W);
 	init_pair(COL_ORANGE_W, COL_ORANGE_W, COL_BLACK_W);
 	init_pair(COL_WHITE_W, COL_WHITE_W, COL_BLACK_W);
-	
-	/* printw("%i LINES %i COLS \n ", LINES, COLS);*/
-	refresh();
-	
-	SZ_1 = LINES-5;
-	SZ_2 = 4;
-	if(SZ_1<13 || COLS < 38)
-	{  endwin(); printf("ERREUR : Fenetre trop petite \n"); exit(1) ;}
-	/* creation de trois cadres superposes separes par une ligne */
- 	W1= newwin( SZ_1, COLS, 0, 0); 
-	L1= newwin( 1, COLS, SZ_1, 0);
- 	C= newwin(SZ_2, COLS,SZ_1+1, 0);
+}
+
+void init_windows(WINDOW* W1, WINDOW* L1, WINDOW* C1){
 	/* pas de curseur */
- 	leaveok(C,TRUE);
+ 	leaveok(C1,TRUE);
  	leaveok(L1,TRUE);
 	leaveok(W1,TRUE);
-	
+	keypad(stdscr, TRUE);
+	curs_set(0);
+
 	/* scroll automatique sur W1, W2, C */
-	scrollok(W1,TRUE);scrollok(C,TRUE);
+	scrollok(W1,TRUE);scrollok(C1,TRUE);
+	refresh();
 	/* tracer les lignes */
- 	whline(L1, '=', COLS);
-	wrefresh(L1);
-	/* ecriture dans le cadre de controle */
- 	wprintw(C,"  vous pouvez taper\n le . termine  ....\n");
- 	wrefresh(C);
-	
-	/* recuperation des caracteres tels que frappes */
+	 /* recuperation des caracteres tels que frappes */
  	cbreak();
 	/* pas d'echo automatique */
 	noecho();
 	
-	while((CAR=getch())!='.')
-	{	
+	setlocale(LC_ALL, "");
+}
 
-		write_code(code_state, code, code_length, W1);
-		waddstr(W1, "\n");
-		wrefresh(W1);
+void draw_bottom_windows(WINDOW* L1, WINDOW* C1){
+	whline(L1, '_', COLS);
+	wrefresh(L1);
+	refresh();
+
+ 	wrefresh(C1);
+	refresh();
+}
+void draw_menu(WINDOW* W, int selected){
+	char str[48];
+	int size = sizeof(variations)/sizeof(variation);
+	printf("V %d\n", size);
+	for(int i=0; i < size; i++){
+		if(i == selected)
+			sprintf(str, " > %s\n", variations[i].name);
+		else
+			sprintf(str, "   %s\n", variations[i].name);
+		
+		waddstr(W, str);
 	}
+	sprintf(str, 
+			"\n\nINFO: %d trous, %d couleurs, %d essais\n", 
+			variations[selected].length, 
+			variations[selected].nb_colors, 
+			variations[selected].history_length
+		);
 	
-	wprintw(C,"on termine \n ....\n");
- 	wrefresh(C);
-	endwin();
+	waddstr(W, str);
 }
 
-//renvoie 1 si le joueur a gagné, 0 sinon
-int tour(int serveur, int difficulte){
-	char* buffer = malloc(sizeof(char) * 2);
-	printf("votre choix %d de couleurs \n", difficulte);
-	//ici on doit write dans le serveur les choix
-	int nbRead = read(serveur, buffer, 2);
-	int nbJustes = buffer[0]>>4;
-	int nbCouleurs = buffer[0] & 0x0F;
+int menu(WINDOW* W){
+	int selected = 0;
+	int menu_size = sizeof(variations)/sizeof(variation);
+	int CAR = 0;
+	
+	do
+	{	
+		int move = 0;
 
-	printf("il y a %d couleurs de justes \n", nbCouleurs);
-	printf("il y a %d pionts de bien placés \n", nbJustes);
+		wclear(W);
+		waddstr(W, "Select rules: \n\n");
+		
+		if(CAR == KEY_UP) move = -1;
+		if(CAR == KEY_DOWN) move = 1;
 
-	if(nbJustes==difficulte)
-		return 1;
-	return 0;
+		selected = (menu_size + selected + move) % menu_size;
+		draw_menu(W, selected);
+		//write_code(code_state, code, code_length, W1);
+		
+		wrefresh(W);
+	}while((CAR=getch())!=10);
+
+	return selected;
 }
 
-void jeu(int serveur){
 
-	int nbRead = 0;
-	int difficulte = -1;
-	char* buffer = malloc(sizeof(char) * 2);
-	while(difficulte < 1){
-		printf("quelle difficultée pour votre partie ? \n");
+void init_tour(variation* var, char** states, char** colors, char** fstates, char** palette){
+	int s = (var->length+7)/8;
+	*states = malloc(s);
+	for(int i=0; i<s;i++) (*states)[i] = 0;
 
-		nbRead = read(1, buffer, 2);
-		difficulte = atoi(buffer);
+	int c = (var->length+1/2);
+	*colors = malloc(c);
+	for(int i=0; i<var->length;i++){
+		(*colors)[i/2] &= ~(0xF << 4*(i%2));
+		(*colors)[i/2] |= COL_WHITE_W << 4*(i%2);
 	}
 
-	//on envoie la difficultée choisie au serveur
-	write(serveur, buffer, nbRead);
 
-	int nbTour = 1;
+	int fs = (var->length+7)/8;
+	*fstates = malloc(fs);
+	for(int i=0; i<fs;i++) (*fstates)[i] = 0xFF;
+
+	int p = (var->nb_colors+1/2);
+	
+	(*palette) = malloc(p);
+	for(int i=0; i<var->nb_colors;i++){
+		(*palette)[i/2] &= ~(0xF << 4*(i%2));
+		(*palette)[i/2] |= i << 4*(i%2);
+	}
+}
+
+int select_color(variation* var, WINDOW* C, char* fstates, char* palette, int selected){
+	int CAR;
+	do{
+		int move = 0;
+		wclear(C);
+		waddstr(C, "Select colors: \n\n");
+		write_code(fstates, palette, var->nb_colors, C);
+		waddwstr(C, L"\n");
+
+		if(CAR == KEY_LEFT) move = -1;
+		if(CAR == KEY_RIGHT) move = 1;
+		
+		selected = (var->nb_colors + selected + move) % var->nb_colors;
+		//waddch(C, ' ');
+		for(int j=0; j < var->nb_colors; j++){
+			if(j == selected)
+				waddwstr(C, L" ⸺ ");
+			else
+				waddwstr(C, L"   ");
+
+		}
+		wrefresh(C);
+		refresh();
+	}while( (CAR = getch()) != 10);
+	return selected;
+}
+//renvoie 1 si le joueur a gagné, 0 sinon
+int tour(int serveur, variation* var, WINDOW* W, WINDOW* C){
+	
+	char *states, *colors, *fstates, *palette;
+	init_tour(var, &states, &colors, &fstates, &palette);
+
+	int idx=0;
+	int selected = 0;
+
+	waddstr(W, "\n");
+	write_code(states, colors, var->length, W);
+	wrefresh(W);
+	do{
+		selected = select_color(var, C, fstates, palette, selected);
+
+		colors[idx/2] &= ~(0xF << 4*(idx%2));
+		colors[idx/2] |= (selected << 4*(idx%2));
+		states[idx/8] |= (1 << (idx%8));
+		
+		waddstr(W, "\r");
+		write_code(states, colors, var->length, W);
+		wrefresh(W);
+
+	}while(++idx < var->length);
+
+	char* hint_state = malloc((var->length+3)/4);
+
+	int g = 0;
+
+	h_writes(serveur, colors, (var->length+1)/2);
+	
+	h_reads(serveur, hint_state, (var->length+3)/4);
+	h_reads(serveur, (char*)&g, sizeof(int));
+	
+	write_hint(hint_state, var->length, W);
+	wrefresh(W);
+	return g;
+}
+
+int loop(int serveur, variation* var, WINDOW* W, WINDOW* C){
+
+	wclear(W);
+
+	mvwhline(W, var->history_length+1, 1, '-', var->length*3);
+	wmove(W, 0, 0);
+	wrefresh(W);
+	int nbTour = 0;
 	int gagne = 0;
-	while( !gagne && nbTour !=12){
-		gagne = tour(serveur, difficulte);
+	while( !gagne && nbTour < var->history_length){
+		gagne = tour(serveur, var, W, C);
 		nbTour++;
 	}
 
-	if(gagne)
-		printf("bien joué vous avez gagné en %d coups \n", nbTour);
-	else
-		printf("désolé vous avez perdu \n");
+	char str[32];
+
+	wclear(W);
+	wclear(C);
+	if(gagne){
+		sprintf(str, "\n\n\nCode broken in %d attempts\n\n", nbTour);
+		waddstr(W, str);
+	}
+	else{
+		sprintf(str, "\n\n\nFailed to break the code\n");
+		waddstr(W, str);
+
+		char* hidden = malloc((var->length+1)/2);
+		h_reads(serveur, hidden, (var->length+1)/2);
+		
+		int fs = (var->length+7)/8;
+		char* fstates = malloc(fs);
+		for(int i=0; i<fs;i++) fstates[i] = 0xFF;
+		write_code(fstates, hidden, var->length, W);
+	}
+	
+	
+	waddstr(W, "\n\n continue...");
+	wrefresh(W);
+	wrefresh(C);
+	refresh();
+	
+	getch();
+
+}
+void jeu(int serveur){
+
+	init_gui();
+	
+	int SZ_1 = LINES-5;
+	int SZ_2 = 4;
+
+	/* création de 2 cadres sépares par une ligne */
+	WINDOW *W1 = newwin( SZ_1, COLS, 0, 0); 
+	WINDOW *L1 = newwin( 1, COLS, SZ_1, 0);
+	WINDOW *C1 = newwin(SZ_2, COLS,SZ_1+1, 0);
+ 	
+	if(SZ_1<20 || COLS < 38)
+		{endwin(); printf("ERREUR : Fenetre trop petite \n"); exit(1) ;}
+	
+
+	init_windows(W1, L1, C1);
+	
+	int selected = menu(W1);
+	write(serveur, &selected, sizeof(int));
+	
+	variation var = variations[selected];
+	
+	draw_bottom_windows(L1, C1);
+	loop(serveur, &var, W1, C1);
+	wclear(W1);
+	wclear(C1);
+	wclear(L1);
+	use_default_colors();
+	
+	nocbreak();
+	echo();
+	refresh();
+	endwin();
 } 
 
 /*****************************************************************************/

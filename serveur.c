@@ -20,6 +20,7 @@
 #include<string.h>
 
 #include "fon.h"     		/* Primitives de la boite a outils */
+#include "shared.h"
 
 #define SERVICE_DEFAUT "1111"
 
@@ -57,120 +58,104 @@ int main(int argc,char *argv[])
 }
 
 
-char* char_to_string(char d)
-{
- char* str = malloc(sizeof(char)*2);
+int gen_hint(char* code, char* hidden, char* hint_state, variation* var){
+	char cc=0;
+	char ch=0;
+	int* count_c = malloc(var->nb_colors*sizeof(int));
+	int* count_h = malloc(var->nb_colors*sizeof(int));
 
- str[0] = d;
- str[1] = '\0';
- 
- return str;
-}
+	int hint_idx = 0;
+	for(int i=0; i < var->length; i++){
+		cc = (code[i/2] >> 4*(i%2)) & 0xF;
+		ch = (hidden[i/2] >> 4*(i%2)) & 0xF;
+		
+		if(cc == ch){
+			hint_state[hint_idx/4] &= ~(3 << 2*(hint_idx%4));
+			hint_state[hint_idx/4] |= (2 << 2*(hint_idx%4));
+			hint_idx++;
+		}
+		else{
+			count_c[cc]++;
+			count_h[ch]++;
+		}
 
+	}
 
-int nbCouleursJustes(int* couleurs, char* choix, int difficulte){
-	int nbJustes = 0;
+	if(hint_idx == var->length)
+		return 1;
 
-	int* checkTab = malloc(sizeof(int) * difficulte);
-	memset(checkTab, 0, difficulte);
-
-	//on check les pionts bien placés
-	for(int i=0; i<difficulte; i++){
-		int couleurCourante = 0;
-		if(i%2==0)	
-			couleurCourante = choix[i/2] && 0x0F;
-		else
-			couleurCourante = choix[i/2]  >> 4;
-		if(couleurs[i]==couleurCourante){
-			nbJustes++;
-			checkTab[i]=1;
+	for(int i=0; i < var->nb_colors; i++){
+		int min = (count_h[i] > count_c[i]) ? count_c[i] : count_h[i];
+		while(min){
+			hint_state[hint_idx/4] |= (1 << 2*(hint_idx%4));
+			min--;
+			hint_idx++;
 		}
 	}
-
-	int nbCouleurs = 0;
-
-	//on check les couleurs présentes
-	for(int i=0; i<difficulte; i++){
-		if(!checkTab[i]){
-			int couleurCourante = 0;
-			if(i%2==0)	
-				couleurCourante = choix[i/2] & 0x0F;
-			else
-				couleurCourante = choix[i/2]  >> 4;
-			for(int j=0; j<difficulte; j++){
-				if(!checkTab[j]){
-					if(couleurs[i]==couleurCourante){
-						nbCouleurs++;
-						checkTab[j]=1;
-						break;
-					}
-				}
-			}
-		}
-	}
-	
-	return nbJustes << 4 + nbCouleurs; 
+	return 0;
 }
 
-int* tirerCouleurs(int difficulte){
-	int* tab = malloc(sizeof(int) * difficulte);
-	for(int i=0; i<difficulte; i++){
-		tab[i]=rand()%difficulte;
+void gen_hidden(variation* var, char* hidden){
+	for(int i=0; i < var->length; i++){
+		int r = rand() % var->nb_colors;
+		hidden[i/2] &= ~(0xF << 4*(i%2));
+		hidden[i/2] |= (r << 4*(i%2));
 	}
-	return tab;
 }
 
 //renvoie 1 si le joueur a gagné, 0 sinon
-int tour(int socketClient, int* couleurs, int difficulte){
-	
-	char* buffer = malloc(sizeof(char)*(difficulte+1));
-	//le client envoie son choix
-	int nbRead = h_reads(socketClient, buffer, difficulte+1);
+int tour(int socketClient, char* hidden, variation* var){
 
-	//nbJustes contient le nombre de couleurs présentes et de pions bien placés dans un char
-	char nbJustes = (char) nbCouleursJustes(couleurs, buffer, difficulte);
+	int len = (var->length+1)/2;
+	char* buffer = malloc(len);
+
+	int len_hint = (var->length+3)/4;
+	char* hint_state = malloc(len_hint);
+	//le client envoie son choix
+	int nbRead = h_reads(socketClient, buffer, len);
+
+
+	int g = gen_hint(buffer, hidden, hint_state, var);
 
 	//on envoie le nombre de choix justes au client
-	write(socketClient, char_to_string(nbJustes), 2);
+	write(socketClient, hint_state, len_hint);
+	write(socketClient, &g, sizeof(int));
 
-	if(nbJustes==difficulte)
-		return 1;
-	return 0;
+	return g;
 }
 
 
 void jeu(int socketClient){
 
-	char* buffer = malloc(sizeof(char)*2);
+	char* buffer = malloc(sizeof(int));
 
-	//debut de communication, le client doit envoyer un int correspondant à la difficulté
+	//debut de communication, le client doit envoyer un int correspondant au mode de jeu
 
-	int nbRead = h_reads(socketClient, buffer, 2);
-	int difficulte = atoi(buffer);
+	int nbRead = h_reads(socketClient, buffer, sizeof(int));
+	int mode = *((int*)buffer);
+	int nbVar = sizeof(variations)/sizeof(variation);
 
-	printf("difficulté : %d \n", difficulte);
-
-	if(difficulte<1 || difficulte >8)
+	if(mode<0 || mode >= nbVar)
 		exit(1);
+	
+	variation var = variations[mode];
+	printf("mode de jeu : %s \n", var.name);
 
 	printf("tirage des couleurs \n");
 
-	int* couleurs = tirerCouleurs(difficulte);
-
-	printf("affichage des couleurs : \n");
-
-	for(int i =0; i<difficulte; i++)
-		printf("%d ", couleurs[i]);
+	char* hidden = malloc((var.length+1)/2);
+	gen_hidden(&var, hidden);
 
 	printf("\n debut des tours \n");
 
-	int nbTour = 1;
+	int nbTour = 0;
 	int gagne = 0;
-	while( !gagne && nbTour !=12){
-		gagne = tour(socketClient, couleurs, difficulte);
+	while( !gagne && nbTour < var.history_length){
+		gagne = tour(socketClient, hidden, &var);
 		nbTour++;
 	}
-	
+	if(!gagne)
+		h_writes(socketClient, hidden, (var.length+1)/2);
 	h_close(socketClient);
 	exit(1);
 }
