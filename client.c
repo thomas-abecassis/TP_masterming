@@ -90,6 +90,7 @@ void write_code(char* state, char* color, int size, WINDOW* w){
 		waddwstr(w, str);
 		wattroff(w, COLOR_PAIR(CODE_COLORS_W[c]));
 	}
+	free(str);
 }
 void write_hint(char* state, int size, WINDOW* w){
 	char s=0;
@@ -102,6 +103,8 @@ void write_hint(char* state, int size, WINDOW* w){
 		waddwstr(w, str);
 		wattroff(w, COLOR_PAIR(HINT_COLORS_W[s]));
 	}
+	free(str);
+
 }
 
 
@@ -301,7 +304,28 @@ int tour(int serveur, variation* var, WINDOW* W, WINDOW* C){
 	
 	write_hint(hint_state, var->length, W);
 	wrefresh(W);
+
+	free(hint_state);
+	free(states);
+	free(colors);
+	free(fstates);
+	free(palette);
 	return g;
+}
+
+void fail_screen(int serveur, WINDOW* W, variation* var){
+	waddstr(W, "\n\n\nFailed to break the code\n");
+
+	char* hidden = malloc((var->length+1)/2);
+	h_reads(serveur, hidden, (var->length+1)/2);
+	
+	int fs = (var->length+7)/8;
+	char* fstates = malloc(fs);
+	for(int i=0; i<fs;i++) fstates[i] = 0xFF;
+	write_code(fstates, hidden, var->length, W);
+
+	free(hidden);
+	free(fstates);
 }
 
 int loop(int serveur, variation* var, WINDOW* W, WINDOW* C){
@@ -318,25 +342,16 @@ int loop(int serveur, variation* var, WINDOW* W, WINDOW* C){
 		nbTour++;
 	}
 
-	char str[32];
 
 	wclear(W);
 	wclear(C);
 	if(gagne){
+		char str[32];
 		sprintf(str, "\n\n\nCode broken in %d attempts\n\n", nbTour);
 		waddstr(W, str);
 	}
 	else{
-		sprintf(str, "\n\n\nFailed to break the code\n");
-		waddstr(W, str);
-
-		char* hidden = malloc((var->length+1)/2);
-		h_reads(serveur, hidden, (var->length+1)/2);
-		
-		int fs = (var->length+7)/8;
-		char* fstates = malloc(fs);
-		for(int i=0; i<fs;i++) fstates[i] = 0xFF;
-		write_code(fstates, hidden, var->length, W);
+		fail_screen(serveur, W, var);
 	}
 	
 	
@@ -396,6 +411,8 @@ void client_appli (char *serveur,char *service){
 	h_connect(socket, adrServ);
 	jeu(socket);
 	h_close(socket);
+	free(adrCli);
+	free(adrServ);
  }
 
 /*****************************************************************************/

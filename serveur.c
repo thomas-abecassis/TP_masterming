@@ -81,8 +81,11 @@ int gen_hint(char* code, char* hidden, char* hint_state, variation* var){
 
 	}
 
-	if(hint_idx == var->length)
+	if(hint_idx == var->length){
+		free(count_c);
+		free(count_h);
 		return 1;
+	}
 
 	for(int i=0; i < var->nb_colors; i++){
 		int min = (count_h[i] > count_c[i]) ? count_c[i] : count_h[i];
@@ -92,6 +95,8 @@ int gen_hint(char* code, char* hidden, char* hint_state, variation* var){
 			hint_idx++;
 		}
 	}
+	free(count_c);
+	free(count_h);
 	return 0;
 }
 
@@ -121,6 +126,8 @@ int tour(int socketClient, char* hidden, variation* var){
 	write(socketClient, hint_state, len_hint);
 	write(socketClient, &g, sizeof(int));
 
+	free(buffer);
+	free(hint_state);
 	return g;
 }
 
@@ -135,8 +142,10 @@ void jeu(int socketClient){
 	int mode = *((int*)buffer);
 	int nbVar = sizeof(variations)/sizeof(variation);
 
-	if(mode<0 || mode >= nbVar)
-		exit(1);
+	if(mode<0 || mode >= nbVar){
+		free(buffer);
+		return;
+	}
 	
 	variation var = variations[mode];
 	printf("mode de jeu : %s \n", var.name);
@@ -156,8 +165,9 @@ void jeu(int socketClient){
 	}
 	if(!gagne)
 		h_writes(socketClient, hidden, (var.length+1)/2);
-	h_close(socketClient);
-	exit(1);
+
+	free(buffer);
+	free(hidden);
 }
 
 
@@ -176,8 +186,11 @@ void serveur_appli(char *service){
 
 	if(fork()==0){
 		jeu(client);
+		h_close(client);
+		exit(1);
 	}
-
+	
+	free(adr);
 	}
 }
 
