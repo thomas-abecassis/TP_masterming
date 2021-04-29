@@ -64,6 +64,8 @@ int gen_hint(char* code, char* hidden, char* hint_state, variation* var){
 	char ch=0;
 	int* count_c = malloc(var->nb_colors*sizeof(int));
 	int* count_h = malloc(var->nb_colors*sizeof(int));
+	memset(count_c, 0, var->nb_colors*sizeof(int));
+	memset(count_h, 0, var->nb_colors*sizeof(int));
 
 	int hint_idx = 0;
 	for(int i=0; i < var->length; i++){
